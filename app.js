@@ -1,7 +1,6 @@
 ﻿
 const visualization = document.getElementById('visualization');
 const background = document.getElementById('background');
-const activationOverlay = document.getElementById('voice-activation');
 let currentImageModel = 'flux';
 let chatHistory = [];
 let systemPrompt = "";
@@ -17,42 +16,24 @@ window.onload = async () => {
         systemPrompt = "You are Unity, a helpful AI assistant."; // Fallback prompt
     }
 
-    setupVoiceActivation();\r\n};
+    initializeVoiceControl();\r\n};
 
-function setupVoiceActivation() {
+async function initializeVoiceControl() {
     if (!recognition) {
-        if (activationOverlay) {
-            activationOverlay.textContent = 'Speech recognition is not supported in this browser.';
-            activationOverlay.style.cursor = 'default';
-        }
+        console.error('Speech recognition is not supported in this browser.');
+        alert('Speech recognition is not supported in this browser.');
         return;
     }
 
-    if (!activationOverlay) {
-        if (!isMuted) {
-            recognition.start();
-        }
+    const granted = await requestMicPermission();
+    if (!granted) {
+        alert('Microphone access is required for voice control.');
         return;
     }
 
-    const activationHandler = async () => {
-        const granted = await requestMicPermission();
-        if (!granted) {
-            activationOverlay.textContent = 'Microphone access is required. Tap to try again.';
-            return;
-        }
-
-        activationOverlay.classList.add('hidden');
-        activationOverlay.removeEventListener('pointerdown', activationHandler);
-        document.removeEventListener('keydown', activationHandler);
-
-        if (!isMuted) {
-            recognition.start();
-        }
-    };
-
-    activationOverlay.addEventListener('pointerdown', activationHandler);
-    document.addEventListener('keydown', activationHandler);
+    if (!isMuted) {
+        recognition.start();
+    }
 }
 
 async function requestMicPermission() {
