@@ -420,6 +420,20 @@ function handleVoiceCommand(command) {
 const POLLINATIONS_TEXT_URL = 'https://text.pollinations.ai/openai';
 const UNITY_REFERRER = 'https://www.unityailab.com/';
 
+function shouldUseUnityReferrer() {
+    if (typeof window === 'undefined') {
+        return true;
+    }
+
+    try {
+        const unityOrigin = new URL(UNITY_REFERRER).origin;
+        return window.location.origin === unityOrigin;
+    } catch (error) {
+        console.error('Failed to parse UNITY_REFERRER:', error);
+        return false;
+    }
+}
+
 async function getAIResponse(userInput) {
     console.log(`Sending to AI: ${userInput}`);
 
@@ -434,6 +448,20 @@ async function getAIResponse(userInput) {
     try {
         const messages = [{ role: 'system', content: systemPrompt }, ...chatHistory];
 
+        const pollinationsPayload = JSON.stringify({
+            messages,
+            model: 'unity'
+        });
+
+        const useUnityReferrer = shouldUseUnityReferrer();
+
+        if (!useUnityReferrer) {
+            console.warn(
+                'Pollinations referrer header disabled because the app is not '
+                + 'being served from https://www.unityailab.com/'
+            );
+        }
+
         const textResponse = await fetch(POLLINATIONS_TEXT_URL, {
             method: 'POST',
             headers: {
@@ -444,10 +472,13 @@ async function getAIResponse(userInput) {
             // approved web client even when running the app from localhost.
             referrer: UNITY_REFERRER,
             referrerPolicy: 'strict-origin-when-cross-origin',
-            body: JSON.stringify({
-                messages,
-                model: 'unity'
-            })
+            body: pollinationsPayload,
+            ...(useUnityReferrer
+                ? {}
+                : {
+                      referrer: 'no-referrer',
+                      referrerPolicy: 'no-referrer'
+                  })
         });
 
         if (!textResponse.ok) {
