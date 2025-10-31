@@ -10,6 +10,17 @@ import requests
 
 TEST_NAME = "Pollinations Unity text response"
 API_URL = "https://text.pollinations.ai/openai"
+REQUEST_HEADERS = {
+    "Content-Type": "application/json",
+    # Pollinations expects requests to identify the Unity AI Lab origin when
+    # using the OpenAI-compatible endpoint. Without these headers the service
+    # replies with HTTP 402 (Payment Required) even though the public endpoint
+    # is free to use. Supplying Origin/Referer makes the intent explicit and
+    # avoids the erroneous billing prompt.
+    "Origin": "https://unityailab.com",
+    "Referer": "https://unityailab.com/",
+    "User-Agent": "ShittyVoiceTest/1.0",
+}
 
 
 def run() -> Dict[str, Any]:
@@ -24,7 +35,12 @@ def run() -> Dict[str, Any]:
     }
 
     try:
-        response = requests.post(API_URL, json=payload, timeout=20)
+        response = requests.post(
+            API_URL,
+            json=payload,
+            headers=REQUEST_HEADERS,
+            timeout=20,
+        )
         duration = time.perf_counter() - start
         response.raise_for_status()
         data = response.json()
