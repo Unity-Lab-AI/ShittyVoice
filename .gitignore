@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+ci_reports/*.json
+dist/
+.env
