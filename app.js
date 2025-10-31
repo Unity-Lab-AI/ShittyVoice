@@ -9,6 +9,7 @@ let recognition = null;
 let isMuted = false;
 let isRecognitionActive = false;
 let shouldAutoRestart = false;
+let hasMicPermission = false;
 
 window.addEventListener('load', async () => {
   await loadSystemPrompt();
@@ -157,9 +158,11 @@ async function requestMicPermission() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       stopTracks(stream);
+      hasMicPermission = true;
       return true;
     } catch (error) {
       console.error('Microphone permission denied:', error);
+      hasMicPermission = false;
       return false;
     }
   }
@@ -177,10 +180,12 @@ async function requestMicPermission() {
         constraints,
         (stream) => {
           stopTracks(stream);
+          hasMicPermission = true;
           resolve(true);
         },
         (error) => {
           console.error('Microphone permission denied (legacy API):', error);
+          hasMicPermission = false;
           resolve(false);
         },
       );
@@ -188,6 +193,7 @@ async function requestMicPermission() {
   }
 
   alert('Microphone access is not supported in this browser.');
+  hasMicPermission = false;
   return false;
 }
 
@@ -261,6 +267,18 @@ function initializeSpeechRecognition() {
 async function startListening() {
   if (!initializeSpeechRecognition()) {
     return false;
+  }
+
+  if (!hasMicPermission) {
+    const granted = await requestMicPermission();
+    if (!granted) {
+      if (activationOverlay) {
+        activationOverlay.classList.remove('hidden');
+        activationOverlay.textContent =
+          'Microphone access is required. Tap to try again.';
+      }
+      return false;
+    }
   }
 
   if (isRecognitionActive) {
