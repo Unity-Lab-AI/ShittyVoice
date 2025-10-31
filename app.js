@@ -13,6 +13,7 @@ let shouldAutoRestart = false;
 window.addEventListener('load', async () => {
   await loadSystemPrompt();
   setupVoiceActivation();
+  await attemptAutomaticActivation();
 });
 
 async function loadSystemPrompt() {
@@ -96,6 +97,31 @@ function setupVoiceActivation() {
 
   document.addEventListener('keydown', activationHandler);
   activationOverlay.voiceActivationHandler = activationHandler;
+}
+
+async function attemptAutomaticActivation() {
+  if (!initializeSpeechRecognition()) {
+    return;
+  }
+
+  if (!activationOverlay) {
+    const granted = await requestMicPermission();
+    if (!granted) {
+      return;
+    }
+
+    shouldAutoRestart = true;
+    await startListening();
+    return;
+  }
+
+  if (activationOverlay.voiceActivationHandler) {
+    try {
+      await activationOverlay.voiceActivationHandler({ type: 'auto' });
+    } catch (error) {
+      console.error('Automatic microphone activation failed:', error);
+    }
+  }
 }
 
 function hideActivationOverlay() {
