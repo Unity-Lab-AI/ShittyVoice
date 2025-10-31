@@ -417,6 +417,9 @@ function handleVoiceCommand(command) {
     return false;
 }
 
+const POLLINATIONS_TEXT_URL = 'https://text.pollinations.ai/openai';
+const UNITY_REFERRER = 'https://www.unityailab.com/';
+
 async function getAIResponse(userInput) {
     console.log(`Sending to AI: ${userInput}`);
 
@@ -431,11 +434,16 @@ async function getAIResponse(userInput) {
     try {
         const messages = [{ role: 'system', content: systemPrompt }, ...chatHistory];
 
-        const textResponse = await fetch('https://text.pollinations.ai/openai', {
+        const textResponse = await fetch(POLLINATIONS_TEXT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
+            // Explicitly identify the Unity AI Lab referrer so the public
+            // Pollinations endpoint treats the request as coming from the
+            // approved web client even when running the app from localhost.
+            referrer: UNITY_REFERRER,
+            referrerPolicy: 'strict-origin-when-cross-origin',
             body: JSON.stringify({
                 messages,
                 model: 'unity'
@@ -471,7 +479,9 @@ async function getAIResponse(userInput) {
     }
 
     try {
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(userInput)}?model=${currentImageModel}`;
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+            userInput
+        )}?model=${currentImageModel}&referrer=unityailab.com`;
         if (background) {
             background.style.backgroundImage = `url(${imageUrl})`;
         }
