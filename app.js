@@ -125,31 +125,42 @@ function updateMuteIndicator() {
     }
 }
 
-if (muteIndicator) {
-    muteIndicator.addEventListener('click', async () => {
-        if (!recognition) {
+async function attemptUnmute() {
+    if (!recognition) {
+        return;
+    }
+
+    if (!hasMicPermission) {
+        hasMicPermission = await requestMicPermission();
+        if (!hasMicPermission) {
+            alert('Microphone access is required for voice control.');
             return;
         }
+    }
 
-        if (!hasMicPermission) {
-            hasMicPermission = await requestMicPermission();
-            if (!hasMicPermission) {
-                alert('Microphone access is required for voice control.');
-                return;
-            }
-        }
+    if (!isMuted) {
+        return;
+    }
 
-        if (isMuted) {
-            isMuted = false;
-            updateMuteIndicator();
-            try {
-                recognition.start();
-            } catch (error) {
-                console.error('Failed to start recognition:', error);
-            }
-        }
+    isMuted = false;
+    updateMuteIndicator();
+    try {
+        recognition.start();
+    } catch (error) {
+        console.error('Failed to start recognition:', error);
+    }
+}
+
+if (muteIndicator) {
+    muteIndicator.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        await attemptUnmute();
     });
 }
+
+document.addEventListener('click', async () => {
+    await attemptUnmute();
+});
 
 const synth = window.speechSynthesis;
 
