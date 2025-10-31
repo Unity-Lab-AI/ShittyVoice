@@ -44,8 +44,10 @@ function setupVoiceActivation() {
 
   if (activationOverlay.voiceActivationHandler) {
     const previousHandler = activationOverlay.voiceActivationHandler;
-    ['pointerdown', 'click', 'touchstart'].forEach((eventName) => {
+    const activationEvents = ['pointerdown', 'click', 'touchstart'];
+    activationEvents.forEach((eventName) => {
       activationOverlay.removeEventListener(eventName, previousHandler);
+      document.removeEventListener(eventName, previousHandler);
     });
     document.removeEventListener('keydown', previousHandler);
   }
@@ -57,6 +59,10 @@ function setupVoiceActivation() {
       event.key !== ' '
     ) {
       return;
+    }
+
+    if (typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
     }
 
     activationOverlay.textContent = 'Requesting microphone permission...';
@@ -81,18 +87,22 @@ function setupVoiceActivation() {
   };
 
   const removeActivationListeners = () => {
-    ['pointerdown', 'click', 'touchstart'].forEach((eventName) => {
+    const activationEvents = ['pointerdown', 'click', 'touchstart'];
+    activationEvents.forEach((eventName) => {
       activationOverlay.removeEventListener(eventName, activationHandler);
+      document.removeEventListener(eventName, activationHandler);
     });
 
     document.removeEventListener('keydown', activationHandler);
     delete activationOverlay.voiceActivationHandler;
   };
 
-  ['pointerdown', 'click', 'touchstart'].forEach((eventName) => {
+  const activationEvents = ['pointerdown', 'click', 'touchstart'];
+  activationEvents.forEach((eventName) => {
     activationOverlay.addEventListener(eventName, activationHandler, {
       once: false,
     });
+    document.addEventListener(eventName, activationHandler, { once: false });
   });
 
   document.addEventListener('keydown', activationHandler);
@@ -133,19 +143,52 @@ function hideActivationOverlay() {
 }
 
 async function requestMicPermission() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Microphone access is not supported in this browser.');
-    return false;
+  const constraints = { audio: true };
+
+  const stopTracks = (stream) => {
+    if (!stream) {
+      return;
+    }
+
+    stream.getTracks().forEach((track) => track.stop());
+  };
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      stopTracks(stream);
+      return true;
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      return false;
+    }
   }
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop());
-    return true;
-  } catch (error) {
-    console.error('Microphone permission denied:', error);
-    return false;
+  const legacyGetUserMedia =
+    navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    navigator.msGetUserMedia;
+
+  if (legacyGetUserMedia) {
+    return new Promise((resolve) => {
+      legacyGetUserMedia.call(
+        navigator,
+        constraints,
+        (stream) => {
+          stopTracks(stream);
+          resolve(true);
+        },
+        (error) => {
+          console.error('Microphone permission denied (legacy API):', error);
+          resolve(false);
+        },
+      );
+    });
   }
+
+  alert('Microphone access is not supported in this browser.');
+  return false;
 }
 
 function initializeSpeechRecognition() {
