@@ -1,6 +1,7 @@
 ﻿
 const visualization = document.getElementById('visualization');
 const background = document.getElementById('background');
+const muteIndicator = document.getElementById('mute-indicator');
 let currentImageModel = 'flux';
 let chatHistory = [];
 let systemPrompt = "";
@@ -34,6 +35,8 @@ async function initializeVoiceControl() {
     if (!isMuted) {
         recognition.start();
     }
+
+    updateMuteIndicator();
 }
 
 async function requestMicPermission() {
@@ -100,6 +103,30 @@ if (SpeechRecognition) {
 const synth = window.speechSynthesis;
 let isMuted = false;
 
+function updateMuteIndicator() {
+    if (!muteIndicator) {
+        return;
+    }
+
+    if (isMuted) {
+        muteIndicator.classList.remove('hidden');
+    } else {
+        muteIndicator.classList.add('hidden');
+    }
+}
+
+if (muteIndicator) {
+    muteIndicator.addEventListener('click', () => {
+        if (isMuted) {
+            isMuted = false;
+            updateMuteIndicator();
+            if (recognition) {
+                recognition.start();
+            }
+        }
+    });
+}
+
 function speak(text) {
     if (synth.speaking) {
         console.error('Speech synthesis is already speaking.');
@@ -138,11 +165,13 @@ function handleVoiceCommand(command) {
         isMuted = true;
         recognition.stop();
         speak("Microphone muted.");
+        updateMuteIndicator();
         return true;
     } else if (lowerCaseCommand.includes('unmute my mic') || lowerCaseCommand.includes('unmute microphone')) {
         isMuted = false;
         recognition.start();
         speak("Microphone unmuted.");
+        updateMuteIndicator();
         return true;
     } else if (lowerCaseCommand.includes('shut up') || lowerCaseCommand.includes('be quiet')) {
         synth.cancel();

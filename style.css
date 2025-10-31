@@ -29,6 +29,29 @@
     border: 2px solid #ffffff;
 }
 
+#mute-indicator {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    text-align: center;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+#mute-indicator:hover {
+    opacity: 0.85;
+}
+
+.hidden {
+    display: none;
+}
+
 @keyframes pulse {
     0% {
         transform: translate(-50%, -50%) scale(1);
