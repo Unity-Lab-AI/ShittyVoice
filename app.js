@@ -66,8 +66,15 @@ function setCircleState(circle, { speaking = false, listening = false, error = f
     circle.classList.toggle('is-error', error);
     circle.classList.toggle('is-active', speaking || listening || error);
 
-    if (label) {
-        circle.setAttribute('aria-label', label);
+    const resolvedLabel = label || circle.dataset.defaultLabel || '';
+
+    if (resolvedLabel) {
+        circle.setAttribute('aria-label', resolvedLabel);
+    }
+
+    const statusText = circle.querySelector('.status-text');
+    if (statusText && resolvedLabel) {
+        statusText.textContent = resolvedLabel;
     }
 }
 
@@ -122,11 +129,19 @@ function updateBackgroundLinkOverlay(urls) {
 
 async function loadSystemPrompt() {
     try {
-        const response = await fetch(resolveAssetPath('ai-instruct.txt'));
+        const response = await fetch(resolveAssetPath('ai-instruct.txt'), {
+            cache: 'no-store'
+        });
         systemPrompt = await response.text();
+        document.body.dataset.systemPromptStatus = 'loaded';
+        console.info(
+            '[Unity Voice]',
+            `System prompt loaded (${systemPrompt.length} characters)`
+        );
     } catch (error) {
         console.error('Error fetching system prompt:', error);
         systemPrompt = 'You are Unity, a helpful AI assistant.';
+        document.body.dataset.systemPromptStatus = 'fallback';
     }
 }
 
