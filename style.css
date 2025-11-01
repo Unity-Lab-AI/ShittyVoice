@@ -170,6 +170,30 @@ body {
     border-color: rgba(67, 217, 189, 0.6);
 }
 
+.voice-circle .status-text {
+    position: relative;
+    z-index: 2;
+    padding: 0 18px;
+    text-align: center;
+    font-size: clamp(0.82rem, 2.4vw, 1rem);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: rgba(245, 245, 245, 0.88);
+    transition: color 0.4s ease;
+}
+
+.voice-circle.is-error .status-text {
+    color: rgba(255, 161, 181, 0.95);
+}
+
+.voice-circle.is-speaking .status-text {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.voice-circle.is-listening.user .status-text {
+    color: rgba(193, 255, 244, 0.96);
+}
+
 .voice-circle.is-speaking {
     box-shadow: 0 0 54px -16px rgba(255, 255, 255, 0.75);
     transform: translateY(-6px) scale(1.05);
