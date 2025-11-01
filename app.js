@@ -321,7 +321,7 @@ function updateMuteIndicator() {
         muteIndicator.dataset.state = 'muted';
         muteIndicator.setAttribute('aria-label', 'Microphone muted. Tap to enable listening.');
     } else {
-        indicatorText && (indicatorText.textContent = 'Listening… tap to mute');
+        indicatorText && (indicatorText.textContent = 'Tap or click anywhere to mute');
         muteIndicator.dataset.state = 'listening';
         muteIndicator.setAttribute('aria-label', 'Microphone active. Tap to mute.');
     }
@@ -388,17 +388,25 @@ function handleMuteToggle(event) {
 
 muteIndicator?.addEventListener('click', handleMuteToggle);
 
-document.addEventListener('click', () => {
-    if (isMuted) {
-        attemptUnmute();
+document.addEventListener('click', (event) => {
+    if (muteIndicator?.contains(event.target)) {
+        return;
     }
+
+    handleMuteToggle(event);
 });
 
 document.addEventListener('keydown', (event) => {
-    if ((event.key === 'Enter' || event.key === ' ') && isMuted) {
-        event.preventDefault();
-        attemptUnmute();
+    if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
     }
+
+    if (event.target && ['INPUT', 'TEXTAREA'].includes(event.target.tagName)) {
+        return;
+    }
+
+    event.preventDefault();
+    handleMuteToggle(event);
 });
 
 let speakingFallbackTimeout = null;
