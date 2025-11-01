@@ -14,22 +14,30 @@ let hasMicPermission = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synth = window.speechSynthesis;
 
-const directoryUrl = window.__UNITY_VOICE_DIRECTORY_URL__
-    ?? (() => {
-        const href = window.location.href;
-        const pathname = window.location.pathname || '';
-        const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
-
-        if (href.endsWith('/')) {
-            return href;
+const currentScript = document.currentScript;
+const directoryUrl = (() => {
+    if (currentScript?.src) {
+        try {
+            return new URL('./', currentScript.src).toString();
+        } catch (error) {
+            console.error('Failed to derive directory from script src:', error);
         }
+    }
 
-        if (lastSegment && lastSegment.includes('.')) {
-            return href.substring(0, href.lastIndexOf('/') + 1);
-        }
+    const href = window.location.href;
+    const pathname = window.location.pathname || '';
+    const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
 
-        return `${href}/`;
-    })();
+    if (href.endsWith('/')) {
+        return href;
+    }
+
+    if (lastSegment && lastSegment.includes('.')) {
+        return href.substring(0, href.lastIndexOf('/') + 1);
+    }
+
+    return `${href}/`;
+})();
 
 function resolveAssetPath(relativePath) {
     try {
