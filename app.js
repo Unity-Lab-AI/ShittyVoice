@@ -3,6 +3,7 @@ const muteIndicator = document.getElementById('mute-indicator');
 const indicatorText = muteIndicator?.querySelector('.indicator-text') ?? null;
 const aiCircle = document.querySelector('[data-role="ai"]');
 const userCircle = document.querySelector('[data-role="user"]');
+const backgroundUrls = document.getElementById('background-urls');
 
 let currentImageModel = 'flux';
 let chatHistory = [];
@@ -63,10 +64,60 @@ function setCircleState(circle, { speaking = false, listening = false, error = f
     circle.classList.toggle('is-speaking', speaking);
     circle.classList.toggle('is-listening', listening);
     circle.classList.toggle('is-error', error);
+    circle.classList.toggle('is-active', speaking || listening || error);
 
     if (label) {
         circle.setAttribute('aria-label', label);
     }
+}
+
+const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
+const URL_BADGE_POSITIONS = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
+
+function extractUrlsFromText(text = '') {
+    if (!text) {
+        return [];
+    }
+
+    const matches = text.match(URL_REGEX) ?? [];
+    return matches.map((match) => match.replace(/[\s.,;!?]+$/, ''));
+}
+
+function sanitizeTextForSpeech(text = '') {
+    return text.replace(URL_REGEX, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+function updateBackgroundLinkOverlay(urls) {
+    if (!backgroundUrls) {
+        return;
+    }
+
+    const previousBadges = [...backgroundUrls.querySelectorAll('.url-badge')];
+    previousBadges.forEach((badge) => {
+        badge.classList.remove('is-visible');
+        badge.addEventListener(
+            'transitionend',
+            () => {
+                badge.remove();
+            },
+            { once: true }
+        );
+    });
+
+    if (!urls.length) {
+        return;
+    }
+
+    urls.slice(0, URL_BADGE_POSITIONS.length).forEach((url, index) => {
+        const badge = document.createElement('span');
+        badge.className = 'url-badge';
+        badge.dataset.position = URL_BADGE_POSITIONS[index % URL_BADGE_POSITIONS.length];
+        badge.textContent = url;
+        backgroundUrls.appendChild(badge);
+        requestAnimationFrame(() => {
+            badge.classList.add('is-visible');
+        });
+    });
 }
 
 async function loadSystemPrompt() {
@@ -101,6 +152,22 @@ function setupSpeechRecognition() {
         setCircleState(userCircle, {
             listening: true,
             label: 'Listening for your voice'
+        });
+    };
+
+    recognition.onsoundstart = () => {
+        setCircleState(userCircle, {
+            listening: true,
+            speaking: true,
+            label: 'Hearing you speak'
+        });
+    };
+
+    recognition.onsoundend = () => {
+        setCircleState(userCircle, {
+            listening: true,
+            speaking: false,
+            label: 'Processing what you said'
         });
     };
 
@@ -319,6 +386,8 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+let speakingFallbackTimeout = null;
+
 function speak(text) {
     if (synth.speaking) {
         console.error('Speech synthesis is already speaking.');
@@ -341,19 +410,49 @@ function speak(text) {
         console.warn('UK English female voice not found, using default.');
     }
 
+    setCircleState(aiCircle, {
+        speaking: true,
+        label: 'Unity is speaking'
+    });
+
+    if (speakingFallbackTimeout) {
+        clearTimeout(speakingFallbackTimeout);
+    }
+
+    speakingFallbackTimeout = setTimeout(() => {
+        if (synth.speaking) {
+            return;
+        }
+        setCircleState(aiCircle, {
+            speaking: false,
+            label: 'Unity is idle'
+        });
+    }, Math.max(4000, text.length * 90));
+
     utterance.onstart = () => {
         console.log('AI is speaking...');
-        setCircleState(aiCircle, {
-            speaking: true,
-            label: 'Unity is speaking'
-        });
     };
 
     utterance.onend = () => {
         console.log('AI finished speaking.');
+        if (speakingFallbackTimeout) {
+            clearTimeout(speakingFallbackTimeout);
+            speakingFallbackTimeout = null;
+        }
         setCircleState(aiCircle, {
             speaking: false,
             label: 'Unity is idle'
+        });
+    };
+
+    utterance.onerror = () => {
+        if (speakingFallbackTimeout) {
+            clearTimeout(speakingFallbackTimeout);
+            speakingFallbackTimeout = null;
+        }
+        setCircleState(aiCircle, {
+            speaking: false,
+            label: 'Unity encountered a speech error'
         });
     };
 
@@ -527,7 +626,17 @@ async function getAIResponse(userInput) {
         }
 
         chatHistory.push({ role: 'assistant', content: aiText });
-        speak(aiText);
+
+        const extractedUrls = extractUrlsFromText(aiText);
+        const sanitizedText = sanitizeTextForSpeech(aiText);
+
+        updateBackgroundLinkOverlay(extractedUrls);
+
+        if (sanitizedText) {
+            speak(sanitizedText);
+        } else if (extractedUrls.length) {
+            speak('I have shared a link with you.');
+        }
     } catch (error) {
         console.error('Error getting text from Pollinations AI:', error);
         setCircleState(aiCircle, {
