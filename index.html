@@ -4,7 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unity Voice Chat</title>
-    <link rel="stylesheet" href="style.css">
+    <script>
+        (() => {
+            const href = window.location.href;
+            const pathname = window.location.pathname || '';
+            const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+            const directoryUrl = href.endsWith('/')
+                ? href
+                : lastSegment && lastSegment.includes('.')
+                  ? href.substring(0, href.lastIndexOf('/') + 1)
+                  : `${href}/`;
+
+            window.__UNITY_VOICE_DIRECTORY_URL__ = directoryUrl;
+
+            const resolveAsset = (relativePath) => {
+                try {
+                    return new URL(relativePath, directoryUrl).toString();
+                } catch (error) {
+                    console.error('Failed to resolve asset path:', error);
+                    return relativePath;
+                }
+            };
+
+            const styleLink = document.createElement('link');
+            styleLink.rel = 'stylesheet';
+            styleLink.href = resolveAsset('style.css');
+            document.head.appendChild(styleLink);
+
+            const script = document.createElement('script');
+            script.defer = true;
+            script.src = resolveAsset('app.js');
+            document.head.appendChild(script);
+        })();
+    </script>
 </head>
 <body>
     <div id="background" aria-hidden="true"></div>
@@ -23,7 +56,5 @@
     <button id="mute-indicator" class="mute-indicator" data-state="muted" type="button">
         <span class="indicator-text">Tap or click anywhere to unmute</span>
     </button>
-
-    <script src="app.js"></script>
 </body>
 </html>

@@ -14,6 +14,32 @@ let hasMicPermission = false;
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synth = window.speechSynthesis;
 
+const directoryUrl = window.__UNITY_VOICE_DIRECTORY_URL__
+    ?? (() => {
+        const href = window.location.href;
+        const pathname = window.location.pathname || '';
+        const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+        if (href.endsWith('/')) {
+            return href;
+        }
+
+        if (lastSegment && lastSegment.includes('.')) {
+            return href.substring(0, href.lastIndexOf('/') + 1);
+        }
+
+        return `${href}/`;
+    })();
+
+function resolveAssetPath(relativePath) {
+    try {
+        return new URL(relativePath, directoryUrl).toString();
+    } catch (error) {
+        console.error('Failed to resolve asset path:', error);
+        return relativePath;
+    }
+}
+
 window.addEventListener('load', async () => {
     await loadSystemPrompt();
     setupSpeechRecognition();
@@ -37,7 +63,7 @@ function setCircleState(circle, { speaking = false, listening = false, error = f
 
 async function loadSystemPrompt() {
     try {
-        const response = await fetch('ai-instruct.txt');
+        const response = await fetch(resolveAssetPath('ai-instruct.txt'));
         systemPrompt = await response.text();
     } catch (error) {
         console.error('Error fetching system prompt:', error);
