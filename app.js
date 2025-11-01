@@ -1,9 +1,33 @@
-const background = document.getElementById('background');
-const muteIndicator = document.getElementById('mute-indicator');
-const indicatorText = muteIndicator?.querySelector('.indicator-text') ?? null;
-const aiCircle = document.querySelector('[data-role="ai"]');
-const userCircle = document.querySelector('[data-role="user"]');
-const backgroundUrls = document.getElementById('background-urls');
+let background = null;
+let muteIndicator = null;
+let indicatorText = null;
+let aiCircle = null;
+let userCircle = null;
+let backgroundUrls = null;
+
+let domListenersRegistered = false;
+
+function cacheDomReferences() {
+    background = document.getElementById('background');
+    muteIndicator = document.getElementById('mute-indicator');
+    indicatorText = muteIndicator?.querySelector('.indicator-text') ?? null;
+    aiCircle = document.querySelector('[data-role="ai"]');
+    userCircle = document.querySelector('[data-role="user"]');
+    backgroundUrls = document.getElementById('background-urls');
+}
+
+function registerDomEventListeners() {
+    if (domListenersRegistered) {
+        return;
+    }
+
+    muteIndicator?.addEventListener('click', handleMuteToggle);
+
+    document.addEventListener('click', handleDocumentClick);
+    document.addEventListener('keydown', handleDocumentKeydown);
+
+    domListenersRegistered = true;
+}
 
 let currentImageModel = 'flux';
 let chatHistory = [];
@@ -49,12 +73,20 @@ function resolveAssetPath(relativePath) {
     }
 }
 
-window.addEventListener('load', async () => {
+async function bootstrap() {
+    cacheDomReferences();
+    registerDomEventListeners();
     await loadSystemPrompt();
     setupSpeechRecognition();
     updateMuteIndicator();
     await initializeVoiceControl();
-});
+}
+
+if (document.readyState === 'complete') {
+    bootstrap();
+} else {
+    window.addEventListener('load', bootstrap);
+}
 
 function setCircleState(circle, { speaking = false, listening = false, error = false, label = '' } = {}) {
     if (!circle) {
@@ -386,17 +418,15 @@ function handleMuteToggle(event) {
     }
 }
 
-muteIndicator?.addEventListener('click', handleMuteToggle);
-
-document.addEventListener('click', (event) => {
+function handleDocumentClick(event) {
     if (muteIndicator?.contains(event.target)) {
         return;
     }
 
     handleMuteToggle(event);
-});
+}
 
-document.addEventListener('keydown', (event) => {
+function handleDocumentKeydown(event) {
     if (event.key !== 'Enter' && event.key !== ' ') {
         return;
     }
@@ -407,7 +437,7 @@ document.addEventListener('keydown', (event) => {
 
     event.preventDefault();
     handleMuteToggle(event);
-});
+}
 
 let speakingFallbackTimeout = null;
 
