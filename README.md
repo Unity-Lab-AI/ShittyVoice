@@ -33,8 +33,10 @@ Two separate GitHub Actions workflows keep deployments fast and informative:
 
 - **Main Branch Delivery** (`.github/workflows/main-branch.yml`)
   - Triggers on pushes to `main` and manual dispatches.
-  - Builds the static bundle, uploads the GitHub Pages artifact, and records a
-    machine-readable build summary.
+  - Runs `scripts/build_static.py`, which inlines the CSS and JavaScript so the
+    GitHub Pages artifact is a self-contained `index.html` (eliminating missing
+    asset issues on the published site).
+  - Uploads the bundle artifact and records a machine-readable build summary.
   - Executes the same test suite and reports results without blocking deploys.
   - Deploys successful builds to GitHub Pages.
 

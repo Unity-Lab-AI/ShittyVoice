@@ -30,37 +30,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Build static site bundle
-        run: |
-          python - <<'PY'
-          import json
-          import shutil
-          import time
-          from pathlib import Path
-
-          start = time.perf_counter()
-          root = Path('.')
-          dist = Path('dist')
-          if dist.exists():
-            shutil.rmtree(dist)
-          dist.mkdir(parents=True, exist_ok=True)
-
-          for asset in ['index.html', 'style.css', 'app.js', 'ai-instruct.txt']:
-              shutil.copy2(root / asset, dist / asset)
-
-          duration = time.perf_counter() - start
-          report_dir = Path('ci_reports')
-          report_dir.mkdir(parents=True, exist_ok=True)
-          (report_dir / 'build_status.json').write_text(
-              json.dumps(
-                  {
-                      'status': 'succeeded',
-                      'artifact': 'github-pages',
-                      'duration': duration,
-                  },
-                  indent=2,
-              )
-          )
-          PY
+        run: python scripts/build_static.py
 
       - name: Upload static artifact
         uses: actions/upload-pages-artifact@v3
