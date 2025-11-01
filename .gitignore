@@ -1,5 +1,12 @@
+# Python cache
 __pycache__/
 *.py[cod]
-ci_reports/*.json
-dist/
+
+# Environment files
 .env
+
+# Build artifacts
+/dist/
+
+# CI output reports
+/ci_reports/
